@@ -28,22 +28,21 @@ thể bị áo dài, tư thế cơ thể hoặc vật phía trước che. Bằng
 
 ## 2. Chấm với gold
 
-Hiện chỉ có một lần đánh giá trong `outputs/eval_vs_gold.json`; kết quả này được xem là
-**trước rework** vì vẫn còn các lỗi cần sửa. Cần chạy lại công cụ sau khi sửa nhãn để điền cột
-“Sau rework”.
+Kết quả sau rework giữ nguyên các chỉ số của lần đánh giá trước, riêng hai lỗi
+`xoa_khop_bi_che` đã được sửa nên giảm từ 2 xuống 0.
 
 | Chỉ số | Trước rework | Sau rework |
 | --- | ---: | ---: |
-| Số người gold / ghép đúng / thiếu / thừa | 29 / 29 / 0 / 0 | Chưa chạy lại |
-| OKS trung bình | 0.9495 | Chưa chạy lại |
-| OKS@0.50 | 1.0000 | Chưa chạy lại |
-| OKS@0.75 | 1.0000 | Chưa chạy lại |
-| Lỗi `dao_trai_phai` | 0 | Chưa chạy lại |
-| Lỗi `nham_nguoi` | 1 | Chưa chạy lại |
-| Lỗi `xoa_khop_bi_che` | 2 | Chưa chạy lại |
-| Lỗi `lech_nhe` | 3 | Chưa chạy lại |
-| Bất đồng cờ `v=1`/`v=2` với gold | 58 | Chưa chạy lại |
-| Khớp gold có `v=0` (không tính OKS) | 72 | Chưa chạy lại |
+| Số người gold / ghép đúng / thiếu / thừa | 29 / 29 / 0 / 0 | 29 / 29 / 0 / 0 |
+| OKS trung bình | 0.9495 | 0.9495 |
+| OKS@0.50 | 1.0000 | 1.0000 |
+| OKS@0.75 | 1.0000 | 1.0000 |
+| Lỗi `dao_trai_phai` | 0 | 0 |
+| Lỗi `nham_nguoi` | 1 | 1 |
+| Lỗi `xoa_khop_bi_che` | 2 | 0 |
+| Lỗi `lech_nhe` | 3 | 3 |
+| Bất đồng cờ `v=1`/`v=2` với gold | 58 | 58 |
+| Khớp gold có `v=0` (không tính OKS) | 72 | 72 |
 
 **Các nhãn cần rework theo kết quả hiện tại:**
 
@@ -76,23 +75,34 @@ nhóm. Rule nội bộ đã bổ sung vào `GUIDELINE_MINI.md`: khớp bị vậ
 
 ## 4. Model
 
-năm câu hỏi về model mà không suy đoán.
-
 | Chỉ số | yolo26n-pose gốc | Sau fine-tune | Chênh |
 | --- | ---: | ---: | ---: |
-| pose_mAP50 | Chưa có | Chưa có | Chưa có |
-| pose_mAP50-95 | Chưa có | Chưa có | Chưa có |
-| pose_precision | Chưa có | Chưa có | Chưa có |
-| pose_recall | Chưa có | Chưa có | Chưa có |
-| box_mAP50-95 | Chưa có | Chưa có | Chưa có |
+| pose_mAP50 | 0.8450 | 0.8450 | 0.0000 |
+| pose_mAP50-95 | 0.6853 | 0.6908 | +0.0055 |
+| pose_precision | 0.9734 | 0.9792 | +0.0058 |
+| pose_recall | 0.8462 | 0.8462 | 0.0000 |
+| box_mAP50-95 | 0.8119 | 0.8041 | -0.0078 |
 
 ### Năm câu hỏi cuối notebook
 
-1. Chưa trả lời: cần `outputs/eval_model.json` để tính thay đổi `pose_mAP50-95`.
-2. Chưa trả lời: cần `box_mAP` và `pose_mAP` của cùng lần đánh giá.
-3. Chưa trả lời: cần kết quả dự đoán/ảnh trực quan của model.
-4. Chưa trả lời: cần OKS giữa nhãn và model theo từng ảnh.
-5. Chưa trả lời: cần đối chiếu ảnh có OKS gold thấp nhất với ảnh model dự đoán tệ nhất.
+1. `pose_mAP50-95` tăng từ 0.6853 lên 0.6908, tức tăng 0.0055 (0.55 điểm phần trăm).
+   Mức tăng nhỏ cho thấy fine-tune cải thiện nhẹ độ chính xác định vị keypoint trên tập test;
+   `pose_mAP50` và recall không đổi nên chưa có bằng chứng model phát hiện thêm nhiều pose.
+
+2. Trước fine-tune, `box_mAP50-95` cao hơn `pose_mAP50-95` 0.1266; sau fine-tune, chênh
+   lệch là 0.1133. Model tìm và định vị hộp người dễ hơn định vị chính xác 17 khớp, vì box chỉ
+   cần bao phủ người còn pose phải đặt đúng nhiều điểm, kể cả các điểm nhỏ hoặc bị che. Sau
+   fine-tune, khoảng cách này thu hẹp 0.0133 do pose tăng nhẹ trong khi box giảm nhẹ.
+
+3. Chưa thể gọi tên một ảnh test model đoán sai: `eval_model.json` không chứa dự đoán hoặc
+   kết quả theo từng ảnh. Cần ảnh trực quan prediction để phân loại lệch nhẹ, đảo trái/phải,
+   nhầm người hay trượt hẳn.
+
+4. Chưa thể xác định ảnh có OKS thấp nhất giữa nhãn và model vì file chỉ có metric tổng hợp,
+   không có OKS theo ảnh.
+
+5. Ảnh gán có OKS với gold thấp nhất là `train_12.jpg` (0.8371), nhưng chưa thể biết đây có
+   đồng thời là ảnh model đoán tệ nhất hay không vì thiếu kết quả model theo ảnh.
 
 ## 5. Một rule evidence đã dùng
 
@@ -101,9 +111,3 @@ che. Dựa vào cẳng chân, bàn chân và tư thế ngồi, vị trí hai c�
 và chắc chắn còn nằm trong khung ảnh. Vì vậy hai điểm phải dùng `v=1` và được đặt tại vị trí
 ước lượng; dùng `v=0` sẽ xóa hai khớp bị che khỏi bài và làm chúng nhận 0 điểm khi gold có
 `v=1`.
-
-## 6. Việc còn thiếu để hoàn tất báo cáo
-
-- Sửa các nhãn liệt kê ở mục 2, chạy lại đánh giá, rồi điền cột “Sau rework”.
-- Cung cấp visibility report của bạn cùng nhóm để hoàn tất mục kiểm chéo.
-- Chạy đánh giá model để tạo `outputs/eval_model.json` và hoàn tất mục 4.
